@@ -3690,6 +3690,15 @@ skip_prologue_sal (struct symtab_and_line *sal)
   if (sal->explicit_pc)
     return;
 
+  /* In assembly code, if the user asks for a specific line then we should
+     not adjust the SAL.  The user already has instruction level
+     visibility in this case, so selecting a line other than one requested
+     is likely to be the wrong choice.  */
+  if (sal->symtab != nullptr
+      && sal->explicit_line
+      && SYMTAB_LANGUAGE (sal->symtab) == language_asm)
+    return;
+
   scoped_restore_current_pspace_and_thread restore_pspace_thread;
 
   switch_to_program_space_and_thread (sal->pspace);
@@ -3809,12 +3818,6 @@ skip_prologue_sal (struct symtab_and_line *sal)
 
   sal->pc = pc;
   sal->section = section;
-
-  /* Unless the explicit_line flag was set, update the SAL line
-     and symtab to correspond to the modified PC location.  */
-  if (sal->explicit_line)
-    return;
-
   sal->symtab = start_sal.symtab;
   sal->line = start_sal.line;
   sal->end = start_sal.end;
